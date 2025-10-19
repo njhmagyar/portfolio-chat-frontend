@@ -141,8 +141,21 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
+// Project type definition
+interface Project {
+  id: number
+  title: string
+  summary: string
+  description: string
+  category: string
+  role: string
+  timeline: string
+  technologies: string[]
+  emoji: string
+}
+
 // Mock project data - this will come from the API later
-const projects = ref([
+const projects = ref<Project[]>([
   {
     id: 1,
     title: 'E-commerce Mobile App',
@@ -191,7 +204,7 @@ const projects = ref([
 
 const selectedFilter = ref('all')
 const currentView = ref('summary')
-const selectedProject = ref(null)
+const selectedProject = ref<Project | null>(null)
 
 const filteredProjects = computed(() => {
   if (selectedFilter.value === 'all') {
@@ -203,7 +216,7 @@ const filteredProjects = computed(() => {
 })
 
 const getTagColor = (category: string) => {
-  const colors = {
+  const colors: Record<string, string> = {
     'Design': 'bg-purple-100 text-purple-700',
     'Development': 'bg-green-100 text-green-700',
     'Product': 'bg-blue-100 text-blue-700'
@@ -211,7 +224,7 @@ const getTagColor = (category: string) => {
   return colors[category] || 'bg-gray-100 text-gray-700'
 }
 
-const selectProject = (project: any) => {
+const selectProject = (project: Project) => {
   selectedProject.value = project
 }
 </script>
