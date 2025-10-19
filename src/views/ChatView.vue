@@ -45,15 +45,33 @@
           </div>
         </div>
         
-        <button
-          @click="startNewConversation"
-          class="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-white/70 rounded-xl transition-all duration-200 flex items-center space-x-2 font-medium border border-gray-200/50 hover:border-gray-300/70 backdrop-blur-sm"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-          </svg>
-          <span>New Chat</span>
-        </button>
+        <div class="flex items-center space-x-3">
+          <!-- Voice Toggle -->
+          <button
+            @click="toggleVoice"
+            class="px-3 py-2 text-sm rounded-xl transition-all duration-200 flex items-center space-x-2 font-medium border backdrop-blur-sm"
+            :class="voiceEnabled 
+              ? 'text-blue-700 bg-blue-50/70 border-blue-200/70 hover:bg-blue-100/70' 
+              : 'text-gray-600 bg-gray-50/70 border-gray-200/50 hover:bg-gray-100/70'"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path v-if="voiceEnabled" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+              <path v-else d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+            </svg>
+            <span>{{ voiceEnabled ? 'Voice On' : 'Voice Off' }}</span>
+          </button>
+          
+          <!-- New Chat Button -->
+          <button
+            @click="startNewConversation"
+            class="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-white/70 rounded-xl transition-all duration-200 flex items-center space-x-2 font-medium border border-gray-200/50 hover:border-gray-300/70 backdrop-blur-sm"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>New Chat</span>
+          </button>
+        </div>
       </div>
 
       <!-- Chat Messages Area -->
@@ -85,6 +103,49 @@
                 : 'bg-white/70 border border-white/30 text-gray-900 shadow-gray-500/10'"
             >
               <p class="text-sm leading-relaxed font-medium">{{ message.text }}</p>
+              
+              <!-- Audio Controls for AI Messages -->
+              <div v-if="message.sender === 'assistant' && voiceEnabled && message.id" class="flex items-center mt-3 pt-3 border-t border-gray-200/50">
+                <!-- Play/Stop Button -->
+                <button
+                  v-if="currentPlayingMessageId !== message.id"
+                  @click="playAudio(message.id!, message.audio_url)"
+                  :disabled="audioLoadingStates[message.id!]"
+                  class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:bg-gray-100/50 disabled:opacity-50"
+                  :class="message.has_audio ? 'text-blue-600 hover:text-blue-700' : 'text-gray-500 hover:text-gray-600'"
+                >
+                  <svg v-if="!audioLoadingStates[message.id!]" class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span v-if="audioLoadingStates[message.id!]">Generating...</span>
+                  <span v-else-if="message.has_audio">Replay</span>
+                  <span v-else>Play</span>
+                </button>
+                
+                <!-- Stop Button -->
+                <button
+                  v-else
+                  @click="stopAudio"
+                  class="flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50/50 transition-all duration-200"
+                >
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 6h12v12H6z"/>
+                  </svg>
+                  <span>Stop</span>
+                </button>
+                
+                <!-- Audio Status Indicator -->
+                <div v-if="message.has_audio" class="ml-auto flex items-center space-x-1 text-xs text-gray-500">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                  </svg>
+                  <span>Audio ready</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -142,8 +203,20 @@ const router = useRouter()
 // Chat state
 const currentMessage = ref('')
 const loading = ref(false)
-const messages = ref<Array<{sender: 'user' | 'assistant', text: string}>>([])
+const messages = ref<Array<{
+  id?: number,
+  sender: 'user' | 'assistant', 
+  text: string,
+  has_audio?: boolean,
+  audio_url?: string
+}>>([])
 const apiStatus = ref<{success: boolean, message: string} | null>(null)
+
+// Audio controls state
+const playingAudio = ref<HTMLAudioElement | null>(null)
+const currentPlayingMessageId = ref<number | null>(null)
+const audioLoadingStates = ref<Record<number, boolean>>({})
+const voiceEnabled = ref(true)
 
 // Quick prompts for user guidance
 const quickPrompts = [
@@ -166,8 +239,11 @@ onMounted(async () => {
       
       // Convert backend messages to frontend format
       messages.value = historyData.messages.map((msg: any) => ({
+        id: msg.id,
         sender: msg.message_type === 'user_query' ? 'user' : 'assistant',
-        text: msg.content
+        text: msg.content,
+        has_audio: msg.has_audio || false,
+        audio_url: msg.audio_url || null
       }))
       
       console.log(`Loaded ${messages.value.length} messages from conversation`)
@@ -245,11 +321,22 @@ const sendMessage = async () => {
     // Send to backend API
     const response = await apiStore.sendChatQuery(userMessage)
     
-    // Add AI response
-    messages.value.push({
-      sender: 'assistant',
-      text: response.response || 'Sorry, I didn\'t receive a proper response.'
-    })
+    // Add AI response with message ID for audio generation
+    const aiMessage = {
+      id: response.ai_message_id,
+      sender: 'assistant' as const,
+      text: response.response || 'Sorry, I didn\'t receive a proper response.',
+      has_audio: false,
+      audio_url: undefined
+    }
+    
+    messages.value.push(aiMessage)
+    
+    // Auto-generate audio if voice is enabled
+    if (voiceEnabled.value && response.ai_message_id) {
+      // Don't await this - let it run in background
+      playAudio(response.ai_message_id).catch(console.error)
+    }
     
     // Scroll to bottom to show new message
     await nextTick()
@@ -271,6 +358,76 @@ const scrollToBottom = () => {
   const chatArea = document.querySelector('.overflow-y-auto')
   if (chatArea) {
     chatArea.scrollTop = chatArea.scrollHeight
+  }
+}
+
+// Audio control functions
+const playAudio = async (messageId: number, audioUrl?: string) => {
+  try {
+    // Stop any currently playing audio
+    if (playingAudio.value) {
+      playingAudio.value.pause()
+      playingAudio.value = null
+      currentPlayingMessageId.value = null
+    }
+
+    let url = audioUrl
+    
+    // If no audio URL provided, try to generate audio for this message
+    if (!url && messageId) {
+      audioLoadingStates.value[messageId] = true
+      try {
+        const response = await apiStore.generateMessageAudio(messageId)
+        url = response.audio_url
+        
+        // Update the message in our local array
+        const messageIndex = messages.value.findIndex(m => m.id === messageId)
+        if (messageIndex !== -1) {
+          messages.value[messageIndex].has_audio = true
+          messages.value[messageIndex].audio_url = url
+        }
+      } catch (error) {
+        console.error('Failed to generate audio:', error)
+        return
+      } finally {
+        audioLoadingStates.value[messageId] = false
+      }
+    }
+
+    if (url) {
+      const audio = new Audio(url)
+      audio.onended = () => {
+        currentPlayingMessageId.value = null
+        playingAudio.value = null
+      }
+      audio.onerror = () => {
+        console.error('Failed to play audio')
+        currentPlayingMessageId.value = null
+        playingAudio.value = null
+      }
+      
+      currentPlayingMessageId.value = messageId
+      playingAudio.value = audio
+      audio.play()
+    }
+  } catch (error) {
+    console.error('Error playing audio:', error)
+    audioLoadingStates.value[messageId] = false
+  }
+}
+
+const stopAudio = () => {
+  if (playingAudio.value) {
+    playingAudio.value.pause()
+    playingAudio.value = null
+    currentPlayingMessageId.value = null
+  }
+}
+
+const toggleVoice = () => {
+  voiceEnabled.value = !voiceEnabled.value
+  if (!voiceEnabled.value) {
+    stopAudio()
   }
 }
 </script>

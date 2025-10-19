@@ -84,6 +84,40 @@ export const useApiStore = defineStore('api', {
       }
     },
 
+    async generateMessageAudio(messageId: number) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/voice/generate-message/`, {
+          message_id: messageId
+        })
+        return response.data
+      } catch (error) {
+        this.error = 'Failed to generate audio'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async generateVoiceFromText(text: string) {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/voice/generate/`, {
+          text: text
+        })
+        return response.data
+      } catch (error) {
+        this.error = 'Failed to generate voice audio'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     clearSession() {
       this.sessionId = null
     }
