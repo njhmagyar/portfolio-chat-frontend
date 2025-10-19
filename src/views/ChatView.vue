@@ -382,9 +382,9 @@ const playAudio = async (messageId: number, audioUrl?: string) => {
         
         // Update the message in our local array
         const messageIndex = messages.value.findIndex(m => m.id === messageId)
-        if (messageIndex !== -1) {
-          messages.value[messageIndex].has_audio = true
-          messages.value[messageIndex].audio_url = url
+        if (messageIndex !== -1 && messages.value[messageIndex]) {
+          messages.value[messageIndex]!.has_audio = true
+          messages.value[messageIndex]!.audio_url = url
         }
       } catch (error) {
         console.error('Failed to generate audio:', error)
