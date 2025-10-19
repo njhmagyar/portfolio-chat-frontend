@@ -62,12 +62,6 @@
             <h3 class="text-lg font-semibold text-gray-900">
               {{ project.title }}
             </h3>
-            <span 
-              class="px-2 py-1 text-xs font-medium rounded-full"
-              :class="getTagColor(project.category)"
-            >
-              {{ project.category }}
-            </span>
           </div>
           
           <p class="text-gray-600 text-sm mb-3">
@@ -155,74 +149,15 @@ interface Project {
 }
 
 // Mock project data - this will come from the API later
-const projects = ref<Project[]>([
-  {
-    id: 1,
-    title: 'E-commerce Mobile App',
-    summary: 'Redesigned mobile checkout flow increasing conversion by 23%',
-    description: 'Led the complete redesign of the mobile checkout experience for a major e-commerce platform. Conducted user research, created prototypes, and collaborated with engineering to implement a streamlined 3-step checkout process.',
-    category: 'Design',
-    role: 'Lead UX Designer',
-    timeline: '6 months',
-    technologies: ['Figma', 'React Native', 'Firebase', 'Analytics'],
-    emoji: '📱'
-  },
-  {
-    id: 2,
-    title: 'Portfolio Chat Platform',
-    summary: 'AI-powered conversational portfolio with voice cloning',
-    description: 'Built this conversational portfolio platform using Django, Vue.js, and OpenAI. Features include voice cloning, RAG-powered content retrieval, and dynamic case study generation.',
-    category: 'Development',
-    role: 'Full-Stack Developer',
-    timeline: '3 months',
-    technologies: ['Django', 'Vue.js', 'OpenAI', 'PostgreSQL', 'Heroku'],
-    emoji: '🤖'
-  },
-  {
-    id: 3,
-    title: 'SaaS Dashboard Redesign',
-    summary: 'Improved user engagement and reduced support tickets by 40%',
-    description: 'Redesigned the main dashboard for a B2B SaaS platform serving 10k+ users. Focused on information hierarchy, data visualization, and mobile responsiveness.',
-    category: 'Design',
-    role: 'Senior Product Designer',
-    timeline: '4 months',
-    technologies: ['Sketch', 'InVision', 'D3.js', 'React'],
-    emoji: '📊'
-  },
-  {
-    id: 4,
-    title: 'Product Roadmap Tool',
-    summary: 'Internal tool for managing product roadmaps across teams',
-    description: 'Managed the development of an internal roadmap planning tool. Coordinated with stakeholders, defined requirements, and oversaw the product launch to 200+ team members.',
-    category: 'Product',
-    role: 'Product Manager',
-    timeline: '8 months',
-    technologies: ['Jira', 'Confluence', 'React', 'Node.js'],
-    emoji: '🗺️'
-  }
-])
+const projects = ref<Project[]>([])
 
 const selectedFilter = ref('all')
 const currentView = ref('summary')
 const selectedProject = ref<Project | null>(null)
 
 const filteredProjects = computed(() => {
-  if (selectedFilter.value === 'all') {
-    return projects.value
-  }
-  return projects.value.filter(project => 
-    project.category.toLowerCase() === selectedFilter.value
-  )
+  return projects.value
 })
-
-const getTagColor = (category: string) => {
-  const colors: Record<string, string> = {
-    'Design': 'bg-purple-100 text-purple-700',
-    'Development': 'bg-green-100 text-green-700',
-    'Product': 'bg-blue-100 text-blue-700'
-  }
-  return colors[category] || 'bg-gray-100 text-gray-700'
-}
 
 const selectProject = (project: Project) => {
   selectedProject.value = project
