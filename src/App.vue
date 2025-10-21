@@ -3,9 +3,9 @@ import { RouterView, RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="h-screen overflow-hidden bg-gray-50">
     <!-- Header with Navigation -->
-    <header class="bg-white shadow-sm border-b">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
           <h1 class="text-xl font-semibold text-gray-900">
@@ -38,7 +38,7 @@ import { RouterView, RouterLink } from 'vue-router'
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
       <RouterView />
     </main>
   </div>
