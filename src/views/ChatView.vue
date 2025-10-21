@@ -182,7 +182,7 @@
         <div class="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm border-b border-white/30 flex-shrink-0">
           <div>
             <h2 class="text-xl font-bold text-gray-900">
-              {{ slides.length > 0 && slides[currentSlideIndex] ? slides[currentSlideIndex].title : 'Portfolio Presentation' }}
+              {{ slides.length > 0 && slides[currentSlideIndex] ? slides[currentSlideIndex]?.title : 'Portfolio Presentation' }}
             </h2>
             <p class="text-sm text-gray-600">Slide {{ currentSlideIndex + 1 }} of {{ slides.length }}</p>
           </div>
@@ -229,13 +229,13 @@
             <div class="bg-white rounded-3xl shadow-2xl p-6 lg:p-8 w-full flex flex-col justify-center">
               <!-- Slide Title -->
               <h1 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-6 leading-tight">
-                {{ slides[currentSlideIndex].title }}
+                {{ slides[currentSlideIndex]?.title }}
               </h1>
               
               <!-- Bullet Points -->
               <div class="space-y-3 lg:space-y-4">
                 <div 
-                  v-for="(bullet, index) in slides[currentSlideIndex].bullets" 
+                  v-for="(bullet, index) in slides[currentSlideIndex]?.bullets" 
                   :key="index"
                   class="flex items-start space-x-3 lg:space-x-4 opacity-0 animate-fadeInUp"
                   :style="{ animationDelay: `${index * 0.2}s`, animationFillMode: 'forwards' }"
