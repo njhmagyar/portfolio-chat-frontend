@@ -26,12 +26,15 @@ export const useApiStore = defineStore('api', {
       }
     },
 
-    async sendChatQuery(query: string) {
+    async sendChatQuery(query: string, responseLength: string = 'short') {
       this.loading = true
       this.error = null
       
       try {
-        const requestData: { query: string; session_id?: string } = { query }
+        const requestData: { query: string; session_id?: string; response_length?: string } = { 
+          query,
+          response_length: responseLength
+        }
         
         // Include session ID if we have one
         if (this.sessionId) {

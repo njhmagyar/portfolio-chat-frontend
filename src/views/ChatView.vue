@@ -80,7 +80,7 @@
 
         <!-- Chat Messages Area -->
         <div class="flex-1 overflow-y-auto p-3" style="height: calc(100vh - 204px);">
-          <div class="space-y-4 pb-20">
+          <div class="space-y-4 pb-24">
             <div 
               v-for="(message, index) in messages" 
               :key="index"
@@ -148,6 +148,23 @@
 
         <!-- Chat Input - Fixed to bottom -->
         <div class="absolute bottom-0 left-0 right-0 p-3 bg-white/60 backdrop-blur-md border-t border-white/30">
+          <div class="flex items-center space-x-2 mb-2">
+              <label class="text-xs font-medium text-gray-600">Response length:</label>
+              <div class="flex space-x-1">
+                <button
+                  v-for="length in ['short', 'medium', 'long']" 
+                  :key="length"
+                  @click="responseLength = length"
+                  :class="responseLength === length 
+                    ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                    : 'bg-white/50 text-gray-600 border-gray-200/50 hover:bg-white/70'"
+                  class="px-2 py-1 text-xs rounded border transition-colors capitalize"
+                  :disabled="loading"
+                >
+                  {{ length }}
+                </button>
+              </div>
+            </div>
           <div class="flex items-end space-x-3">
             <div class="flex-1">
               <input
@@ -223,7 +240,7 @@
         </div>
 
         <!-- Slide Content -->
-        <div class="flex-1 flex items-center justify-center p-4 lg:p-6 pb-20 lg:pb-6 min-h-0 overflow-auto">
+        <div class="flex-1 flex items-center justify-center p-4 lg:p-6 pb-24 lg:pb-6 min-h-0 overflow-auto">
           <div v-if="slides.length > 0 && slides[currentSlideIndex]" class="w-full max-w-4xl h-full flex items-center">
             <!-- Slide -->
             <div class="bg-white rounded-3xl shadow-2xl p-6 lg:p-8 w-full flex flex-col justify-center">
@@ -258,6 +275,23 @@
         
         <!-- Mobile Text Input - Fixed to bottom (hidden on desktop) -->
         <div class="lg:hidden absolute bottom-0 left-0 right-0 p-3 bg-white/60 backdrop-blur-md border-t border-white/30">
+          <div class="flex items-center space-x-2 mb-2">
+            <label class="text-xs font-medium text-gray-600">Response length:</label>
+            <div class="flex space-x-1">
+              <button
+                v-for="length in ['short', 'medium', 'long']" 
+                :key="length"
+                @click="responseLength = length"
+                :class="responseLength === length 
+                  ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                  : 'bg-white/50 text-gray-600 border-gray-200/50 hover:bg-white/70'"
+                class="px-2 py-1 text-xs rounded border transition-colors capitalize"
+                :disabled="loading"
+              >
+                {{ length }}
+              </button>
+            </div>
+          </div>
           <div class="flex items-end space-x-3">
             <div class="flex-1">
               <input
@@ -329,6 +363,7 @@ const slides = ref<Array<{
 const currentSlideIndex = ref(0)
 
 const currentMessage = ref('')
+const responseLength = ref('short')
 const loading = ref(false)
 const apiStatus = ref<{success: boolean, message: string} | null>(null)
 
@@ -499,7 +534,7 @@ const sendMessage = async () => {
   
   try {
     // Send to backend API
-    const response = await apiStore.sendChatQuery(userMessage)
+    const response = await apiStore.sendChatQuery(userMessage, responseLength.value)
     
     // Add AI response with message ID for audio generation
     const aiMessage = {
