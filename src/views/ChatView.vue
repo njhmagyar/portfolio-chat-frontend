@@ -46,8 +46,7 @@
               </svg>
             </div>
             <div>
-              <h3 class="font-semibold text-gray-900 text-sm">Nathan Magyar AI</h3>
-              <p class="text-xs text-blue-600 font-medium" v-if="apiStore.sessionId">🟢 Session active</p>
+              <h3 class="font-semibold text-gray-900 text-sm">Nathan Haynes-Magyar AI</h3>
             </div>
           </div>
           
@@ -125,7 +124,7 @@
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span v-if="audioLoadingStates[message.id!]">...</span>
-                    <span v-else-if="message.has_audio">♪</span>
+                    <span v-else-if="message.has_audio">Play</span>
                     <span v-else>🔊</span>
                   </button>
                   
