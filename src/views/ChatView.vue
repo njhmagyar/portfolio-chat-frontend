@@ -658,7 +658,7 @@ const loadFeaturedQuestions = async () => {
   try {
     const response = await apiStore.fetchFeaturedQuestions()
     if (response.questions && response.questions.length > 0) {
-      quickPrompts.value = response.questions.map(q => q.question)
+      quickPrompts.value = response.questions.map((q: any) => q.question)
     } else {
       // Use default prompts as fallback
       quickPrompts.value = [...defaultPrompts]
