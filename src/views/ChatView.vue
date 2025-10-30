@@ -372,13 +372,14 @@ const playingAudio = ref<HTMLAudioElement | null>(null)
 const currentPlayingMessageId = ref<number | null>(null)
 const audioLoadingStates = ref<Record<number, boolean>>({})
 
-// Quick prompts for user engagement
-const quickPrompts = ref([
+// Quick prompts for user engagement - will be loaded from API
+const quickPrompts = ref<string[]>([])
+
+// Default fallback prompts
+const defaultPrompts = [
   "What projects have you worked on?",
-  "What are your main skills?",
   "Tell me about your experience",
-  "What's your design process?"
-])
+]
 
 // Slide functions
 const generateSlideFromBackendData = (slideTitle: string, slideBody: string, messageId?: number) => {
@@ -481,6 +482,9 @@ onMounted(async () => {
       message: 'Failed to connect to backend API'
     }
   }
+  
+  // Load featured questions for homepage prompts
+  await loadFeaturedQuestions()
 })
 
 // Watch for session ID changes and update URL
@@ -647,6 +651,23 @@ const toggleVoice = () => {
   voiceEnabled.value = !voiceEnabled.value
   if (!voiceEnabled.value) {
     stopAudio()
+  }
+}
+
+const loadFeaturedQuestions = async () => {
+  try {
+    const response = await apiStore.fetchFeaturedQuestions()
+    if (response.questions && response.questions.length > 0) {
+      quickPrompts.value = response.questions.map(q => q.question)
+    } else {
+      // Use default prompts as fallback
+      quickPrompts.value = [...defaultPrompts]
+    }
+    console.log(`Loaded ${quickPrompts.value.length} questions from ${response.source || 'unknown source'}`)
+  } catch (error) {
+    console.error('Failed to load featured questions, using defaults:', error)
+    // Use default prompts as fallback
+    quickPrompts.value = [...defaultPrompts]
   }
 }
 </script>

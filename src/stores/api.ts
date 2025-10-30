@@ -121,6 +121,21 @@ export const useApiStore = defineStore('api', {
       }
     },
 
+    async fetchFeaturedQuestions() {
+      this.loading = true
+      this.error = null
+      
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/featured-questions/`)
+        return response.data
+      } catch (error) {
+        this.error = 'Failed to fetch featured questions'
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
     clearSession() {
       this.sessionId = null
     }
