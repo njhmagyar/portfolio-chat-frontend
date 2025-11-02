@@ -287,7 +287,7 @@
               </h1>
               
               <!-- Media Carousel -->
-              <div v-if="slides[currentSlideIndex]?.media_urls && slides[currentSlideIndex]?.media_urls.length > 0" class="mb-6">
+              <div v-if="slides[currentSlideIndex]?.media_urls && (slides[currentSlideIndex]?.media_urls?.length ?? 0) > 0" class="mb-6">
                 <div class="relative group">
                   <!-- Current Image -->
                   <div class="overflow-hidden rounded-lg shadow-lg bg-gray-100 aspect-video">
