@@ -140,6 +140,21 @@
                     <span>Stop</span>
                   </button>
                 </div>
+
+                <!-- Follow-up Suggestions for AI Messages -->
+                <div v-if="message.sender === 'assistant' && message.follow_up_suggestions && message.follow_up_suggestions.length > 0" class="mt-3 pt-2 border-t border-gray-200/50">
+                  <p class="text-xs text-gray-600 mb-2 font-medium">Continue the conversation:</p>
+                  <div class="space-y-1">
+                    <button
+                      v-for="(suggestion, idx) in message.follow_up_suggestions"
+                      :key="idx"
+                      @click="useFollowUpSuggestion(suggestion)"
+                      class="block w-full text-left text-xs px-2 py-1 rounded bg-blue-50/70 text-blue-700 hover:bg-blue-100/70 transition-colors border border-blue-200/50"
+                    >
+                      {{ suggestion }}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -248,6 +263,58 @@
                 {{ slides[currentSlideIndex]?.title }}
               </h1>
               
+              <!-- Media Carousel -->
+              <div v-if="slides[currentSlideIndex]?.media_urls && slides[currentSlideIndex]?.media_urls.length > 0" class="mb-6">
+                <div class="relative group">
+                  <!-- Current Image -->
+                  <div class="overflow-hidden rounded-lg shadow-lg bg-gray-100 aspect-video">
+                    <img 
+                      :src="slides[currentSlideIndex]?.media_urls[currentCarouselIndices[slides[currentSlideIndex]?.id] || 0]"
+                      :alt="`Project image ${(currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) + 1}`"
+                      class="w-full h-full object-cover transition-opacity duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+                  
+                  <!-- Navigation Buttons (only show if more than 1 image) -->
+                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button 
+                      @click="prevCarouselImage(slides[currentSlideIndex]?.id)"
+                      class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors duration-200"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                      </svg>
+                    </button>
+                    
+                    <button 
+                      @click="nextCarouselImage(slides[currentSlideIndex]?.id)"
+                      class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors duration-200"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <!-- Image Counter -->
+                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                    {{ (currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) + 1 }} / {{ slides[currentSlideIndex]?.media_urls.length }}
+                  </div>
+                  
+                  <!-- Dots Indicator -->
+                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                    <button
+                      v-for="(_, index) in slides[currentSlideIndex]?.media_urls"
+                      :key="index"
+                      @click="currentCarouselIndices[slides[currentSlideIndex]?.id] = index"
+                      class="w-2 h-2 rounded-full transition-colors duration-200"
+                      :class="(currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) === index ? 'bg-white' : 'bg-white/50'"
+                    ></button>
+                  </div>
+                </div>
+              </div>
+              
               <!-- Bullet Points -->
               <div class="space-y-3 lg:space-y-4">
                 <div 
@@ -349,6 +416,7 @@ const messages = ref<Array<{
   audio_url?: string
   slide_title?: string
   slide_body?: string
+  slide_media_urls?: string[]
 }>>([])
 
 // Slide management state
@@ -356,10 +424,14 @@ const slides = ref<Array<{
   id: number,
   title: string,
   bullets: string[],
+  media_urls: string[],
   messageId?: number
 }>>([])
 
 const currentSlideIndex = ref(0)
+
+// Carousel state for each slide
+const currentCarouselIndices = ref<{ [slideId: number]: number }>({})
 
 const currentMessage = ref('')
 const responseLength = ref('short')
@@ -382,7 +454,7 @@ const defaultPrompts = [
 ]
 
 // Slide functions
-const generateSlideFromBackendData = (slideTitle: string, slideBody: string, messageId?: number) => {
+const generateSlideFromBackendData = (slideTitle: string, slideBody: string, messageId?: number, mediaUrls: string[] = []) => {
   // Parse HTML bullets from backend
   const bullets: string[] = []
   
@@ -401,11 +473,18 @@ const generateSlideFromBackendData = (slideTitle: string, slideBody: string, mes
   }
   
   // Create new slide
+  const slideId = Date.now()
   const newSlide = {
-    id: Date.now(),
+    id: slideId,
     title: slideTitle || 'Portfolio Information',
     bullets: bullets.length > 0 ? bullets : ['Key information from conversation'],
+    media_urls: mediaUrls,
     messageId
+  }
+  
+  // Initialize carousel index for this slide
+  if (mediaUrls.length > 0) {
+    currentCarouselIndices.value[slideId] = 0
   }
   
   slides.value.push(newSlide)
@@ -430,6 +509,23 @@ const goToSlide = (index: number) => {
   }
 }
 
+// Carousel navigation functions
+const nextCarouselImage = (slideId: number) => {
+  const slide = slides.value.find(s => s.id === slideId)
+  if (slide && slide.media_urls.length > 1) {
+    const currentIndex = currentCarouselIndices.value[slideId] || 0
+    currentCarouselIndices.value[slideId] = (currentIndex + 1) % slide.media_urls.length
+  }
+}
+
+const prevCarouselImage = (slideId: number) => {
+  const slide = slides.value.find(s => s.id === slideId)
+  if (slide && slide.media_urls.length > 1) {
+    const currentIndex = currentCarouselIndices.value[slideId] || 0
+    currentCarouselIndices.value[slideId] = currentIndex === 0 ? slide.media_urls.length - 1 : currentIndex - 1
+  }
+}
+
 // Initialize session from URL and test API connection
 onMounted(async () => {
   // Load session ID from URL query parameter
@@ -449,7 +545,8 @@ onMounted(async () => {
         has_audio: msg.has_audio || false,
         audio_url: msg.audio_url || null,
         slide_title: msg.slide_title || null,
-        slide_body: msg.slide_body || null
+        slide_body: msg.slide_body || null,
+        slide_media_urls: msg.slide_media_urls || []
       }))
       
       console.log(`Loaded ${messages.value.length} messages from conversation`)
@@ -457,7 +554,7 @@ onMounted(async () => {
       // Generate slides for existing AI messages that have slide data
       messages.value.forEach(msg => {
         if (msg.sender === 'assistant' && msg.slide_title) {
-          generateSlideFromBackendData(msg.slide_title, msg.slide_body || '', msg.id)
+          generateSlideFromBackendData(msg.slide_title, msg.slide_body || '', msg.id, msg.slide_media_urls || [])
         }
       })
       
@@ -545,14 +642,15 @@ const sendMessage = async () => {
       sender: 'assistant' as const,
       text: response.response || 'Sorry, I didn\'t receive a proper response.',
       has_audio: false,
-      audio_url: undefined
+      audio_url: undefined,
+      follow_up_suggestions: response.follow_up_suggestions || []
     }
     
     messages.value.push(aiMessage)
     
     // Generate slide from backend slide data
     if (response.slide_title) {
-      generateSlideFromBackendData(response.slide_title, response.slide_body || '', response.ai_message_id)
+      generateSlideFromBackendData(response.slide_title, response.slide_body || '', response.ai_message_id, response.slide_media_urls || [])
     }
     
     // Auto-generate audio if voice is enabled
@@ -652,6 +750,12 @@ const toggleVoice = () => {
   if (!voiceEnabled.value) {
     stopAudio()
   }
+}
+
+const useFollowUpSuggestion = (suggestion: string) => {
+  // Set the suggestion as the current message and send it
+  currentMessage.value = suggestion
+  sendMessage()
 }
 
 const loadFeaturedQuestions = async () => {
