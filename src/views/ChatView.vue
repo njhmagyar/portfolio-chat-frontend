@@ -292,17 +292,17 @@
                   <!-- Current Image -->
                   <div class="overflow-hidden rounded-lg shadow-lg bg-gray-100 aspect-video">
                     <img 
-                      :src="slides[currentSlideIndex]?.media_urls[currentCarouselIndices[slides[currentSlideIndex]?.id] || 0]"
-                      :alt="`Project image ${(currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) + 1}`"
+                      :src="slides[currentSlideIndex]?.media_urls[currentCarouselIndices[slides[currentSlideIndex]?.id ?? 0] || 0]"
+                      :alt="`Project image ${(currentCarouselIndices[slides[currentSlideIndex]?.id ?? 0] || 0) + 1}`"
                       class="w-full h-full object-cover transition-opacity duration-300"
                       loading="lazy"
                     />
                   </div>
                   
                   <!-- Navigation Buttons (only show if more than 1 image) -->
-                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div v-if="(slides[currentSlideIndex]?.media_urls?.length ?? 0) > 1" class="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button 
-                      @click="prevCarouselImage(slides[currentSlideIndex]?.id)"
+                      @click="prevCarouselImage(slides[currentSlideIndex]?.id ?? 0)"
                       class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors duration-200"
                     >
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,7 +311,7 @@
                     </button>
                     
                     <button 
-                      @click="nextCarouselImage(slides[currentSlideIndex]?.id)"
+                      @click="nextCarouselImage(slides[currentSlideIndex]?.id ?? 0)"
                       class="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors duration-200"
                     >
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,18 +321,18 @@
                   </div>
                   
                   <!-- Image Counter -->
-                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                    {{ (currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) + 1 }} / {{ slides[currentSlideIndex]?.media_urls.length }}
+                  <div v-if="(slides[currentSlideIndex]?.media_urls?.length ?? 0) > 1" class="absolute bottom-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                    {{ (currentCarouselIndices[slides[currentSlideIndex]?.id ?? 0] || 0) + 1 }} / {{ slides[currentSlideIndex]?.media_urls?.length ?? 0 }}
                   </div>
                   
                   <!-- Dots Indicator -->
-                  <div v-if="slides[currentSlideIndex]?.media_urls.length > 1" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                  <div v-if="(slides[currentSlideIndex]?.media_urls?.length ?? 0) > 1" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                     <button
                       v-for="(_, index) in slides[currentSlideIndex]?.media_urls"
                       :key="index"
-                      @click="currentCarouselIndices[slides[currentSlideIndex]?.id] = index"
+                      @click="currentCarouselIndices[slides[currentSlideIndex]?.id ?? 0] = index"
                       class="w-2 h-2 rounded-full transition-colors duration-200"
-                      :class="(currentCarouselIndices[slides[currentSlideIndex]?.id] || 0) === index ? 'bg-white' : 'bg-white/50'"
+                      :class="(currentCarouselIndices[slides[currentSlideIndex]?.id ?? 0] || 0) === index ? 'bg-white' : 'bg-white/50'"
                     ></button>
                   </div>
                 </div>
@@ -441,6 +441,7 @@ const messages = ref<Array<{
   slide_body?: string
   slide_media_urls?: string[]
   audio_word_timestamps?: Array<{word: string, start: number, end: number}>
+  follow_up_suggestions?: string[]
 }>>([])
 
 // Slide management state
@@ -505,7 +506,7 @@ const renderSynchronizedText = (message: any) => {
     // For AI messages with timestamps, show words progressively
     const timestamps = message.audio_word_timestamps || []
     const visibleWordCount = visibleWordIndices.value[message.id] || 0
-    const currentSpeakingWord = currentSpeakingWordIndex.value[message.id] || -1
+    // const currentSpeakingWord = currentSpeakingWordIndex.value[message.id] || -1
     
     // If audio hasn't started yet (no visible words and audio not ready), show empty
     if (visibleWordCount === 0 && !messagesWithAudioReady.value.has(message.id)) {
@@ -513,7 +514,7 @@ const renderSynchronizedText = (message: any) => {
     }
     
     // Split text into words while preserving their positions
-    const words = message.text.split(/\s+/).filter(word => word.length > 0)
+    const words = message.text.split(/\s+/).filter((word: string) => word.length > 0)
     let result = ''
     
     for (let i = 0; i < words.length && i < timestamps.length; i++) {
@@ -965,7 +966,7 @@ const startWordSynchronization = (messageId: number) => {
     
     for (let i = 0; i < timestamps.length; i++) {
       const timestamp = timestamps[i]
-      if (currentTime >= timestamp.start) {
+      if (timestamp && currentTime >= timestamp.start) {
         visibleWordCount = i + 1
       } else {
         break
@@ -981,7 +982,7 @@ const startWordSynchronization = (messageId: number) => {
     let currentWordIndex = -1
     for (let i = 0; i < timestamps.length; i++) {
       const timestamp = timestamps[i]
-      if (currentTime >= timestamp.start && currentTime <= timestamp.end) {
+      if (timestamp && currentTime >= timestamp.start && currentTime <= timestamp.end) {
         currentWordIndex = i
         break
       }
