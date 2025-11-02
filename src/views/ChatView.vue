@@ -104,10 +104,8 @@
                   ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-blue-600/20' 
                   : 'bg-white/70 border border-white/30 text-gray-900 shadow-gray-500/10'"
               >
-                <p class="text-sm leading-relaxed">{{ message.text }}</p>
-                
                 <!-- Audio Controls for AI Messages -->
-                <div v-if="message.sender === 'assistant' && voiceEnabled && message.id" class="flex items-center mt-2 pt-2 border-t border-gray-200/50">
+                <div v-if="message.sender === 'assistant' && voiceEnabled && message.id" class="flex items-center" :class="{'mt-2': index === messages.length - 1}">
                   <!-- Play/Stop Button -->
                   <button
                     v-if="currentPlayingMessageId !== message.id"
@@ -140,9 +138,10 @@
                     <span>Stop</span>
                   </button>
                 </div>
-
+                <p class="text-sm leading-relaxed" :class="{'mt-3 mb-3 pt-2 border-t border-gray-200/50': message.sender === 'assistant'}" v-html="renderSynchronizedText(message)"></p>
+                
                 <!-- Follow-up Suggestions for AI Messages -->
-                <div v-if="message.sender === 'assistant' && message.follow_up_suggestions && message.follow_up_suggestions.length > 0" class="mt-3 pt-2 border-t border-gray-200/50">
+                <div v-if="message.sender === 'assistant' && message.follow_up_suggestions && message.follow_up_suggestions.length > 0 && index === messages.length - 1 && !playingAudio && !preparingAudio" class="">
                   <p class="text-xs text-gray-600 mb-2 font-medium">Continue the conversation:</p>
                   <div class="space-y-1">
                     <button
@@ -154,6 +153,30 @@
                       {{ suggestion }}
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Thinking Loading State -->
+            <div v-if="isThinking" class="flex items-start space-x-3">
+              <!-- Avatar -->
+              <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-md">
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </div>
+              </div>
+              
+              <!-- Thinking Message -->
+              <div class="flex-1 max-w-md">
+                <div class="bg-white/70 border border-white/30 text-gray-900 shadow-gray-500/10 max-w-xs px-3 py-2 rounded-2xl shadow-lg backdrop-blur-sm">
+                  <p class="text-sm leading-relaxed text-gray-500 italic">
+                    <span class="inline-flex items-center">
+                      Thinking
+                      <span class="ml-1 animate-pulse">...</span>
+                    </span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -208,7 +231,7 @@
         </div>
 
         <!-- Presentation Area (full width on mobile, 2/3 width on desktop) -->
-        <div class="w-full lg:w-2/3 flex flex-col bg-gradient-to-br from-slate-50 to-gray-100 min-h-0 relative">
+        <div class="w-full lg:w-2/3 flex flex-col min-h-0 relative">
         <!-- Presentation Header -->
         <div class="flex items-center justify-between p-4 bg-white/50 backdrop-blur-sm border-b border-white/30 flex-shrink-0">
           <div>
@@ -257,7 +280,7 @@
         <div class="flex-1 flex items-center justify-center p-4 lg:p-6 pb-24 lg:pb-6 min-h-0 overflow-auto">
           <div v-if="slides.length > 0 && slides[currentSlideIndex]" class="w-full max-w-4xl h-full flex items-center">
             <!-- Slide -->
-            <div class="bg-white rounded-3xl shadow-2xl p-6 lg:p-8 w-full flex flex-col justify-center">
+            <div class="bg-white rounded-3xl shadow-lg backdrop-blur-sm bg-white/70 border border-white/30 shadow-gray-500/10 p-6 lg:p-8 w-full flex flex-col justify-center">
               <!-- Slide Title -->
               <h1 class="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-900 mb-6 leading-tight">
                 {{ slides[currentSlideIndex]?.title }}
@@ -417,6 +440,7 @@ const messages = ref<Array<{
   slide_title?: string
   slide_body?: string
   slide_media_urls?: string[]
+  audio_word_timestamps?: Array<{word: string, start: number, end: number}>
 }>>([])
 
 // Slide management state
@@ -444,8 +468,73 @@ const playingAudio = ref<HTMLAudioElement | null>(null)
 const currentPlayingMessageId = ref<number | null>(null)
 const audioLoadingStates = ref<Record<number, boolean>>({})
 
+// Text-audio synchronization state
+const currentHighlightedWordIndex = ref<number | null>(null)
+const audioSyncInterval = ref<number | null>(null)
+const visibleWordIndices = ref<{ [messageId: number]: number }>({}) // Track how many words are visible per message
+const messagesWithAudioReady = ref<Set<number>>(new Set()) // Track which messages have audio ready
+const currentSpeakingWordIndex = ref<{ [messageId: number]: number }>({}) // Track currently speaking word per message
+
+// Loading state management
+const isThinking = ref(false) // When LLM is generating text
+const preparingAudio = ref<{ [messageId: number]: boolean }>({}) // When audio is being generated per message
+const pendingAutoPlay = ref<{ [messageId: number]: boolean }>({}) // Messages waiting for auto-play
+
 // Quick prompts for user engagement - will be loaded from API
 const quickPrompts = ref<string[]>([])
+
+// Function to render text with word-by-word synchronization
+const renderSynchronizedText = (message: any) => {
+  if (message.sender === 'user' || currentPlayingMessageId.value !== message.id) {
+    // For user messages, always show full text
+    return message.text
+  }
+
+  // For AI messages, handle loading states and progressive display
+  if (message.sender === 'assistant') {
+    // Check if this message is in audio preparation
+    if (preparingAudio.value[message.id]) {
+      return '<span class="text-gray-500 italic">Preparing audio...</span>'
+    }
+    
+    // If no timestamps yet or audio not ready, don't show text content
+    if (!message.audio_word_timestamps || message.audio_word_timestamps.length === 0) {
+      return ''
+    }
+
+    // For AI messages with timestamps, show words progressively
+    const timestamps = message.audio_word_timestamps || []
+    const visibleWordCount = visibleWordIndices.value[message.id] || 0
+    const currentSpeakingWord = currentSpeakingWordIndex.value[message.id] || -1
+    
+    // If audio hasn't started yet (no visible words and audio not ready), show empty
+    if (visibleWordCount === 0 && !messagesWithAudioReady.value.has(message.id)) {
+      return ''
+    }
+    
+    // Split text into words while preserving their positions
+    const words = message.text.split(/\s+/).filter(word => word.length > 0)
+    let result = ''
+    
+    for (let i = 0; i < words.length && i < timestamps.length; i++) {
+      const word = words[i]
+      
+      // Only show words that should be visible
+      if (i < visibleWordCount) {
+        result += word;        
+        // Add space after word (except for last visible word)
+        if (i < visibleWordCount - 1) {
+          result += ' '
+        }
+      }
+    }
+    
+    return result
+  }
+  
+  // Fallback for other message types
+  return message.text
+}
 
 // Default fallback prompts
 const defaultPrompts = [
@@ -546,7 +635,9 @@ onMounted(async () => {
         audio_url: msg.audio_url || null,
         slide_title: msg.slide_title || null,
         slide_body: msg.slide_body || null,
-        slide_media_urls: msg.slide_media_urls || []
+        slide_media_urls: msg.slide_media_urls || [],
+        audio_word_timestamps: msg.audio_word_timestamps || [],
+        follow_up_suggestions: msg.follow_up_suggestions || []
       }))
       
       console.log(`Loaded ${messages.value.length} messages from conversation`)
@@ -631,10 +722,14 @@ const sendMessage = async () => {
   // Clear input immediately
   currentMessage.value = ''
   loading.value = true
+  isThinking.value = true
   
   try {
     // Send to backend API
     const response = await apiStore.sendChatQuery(userMessage, responseLength.value)
+    
+    // Stop thinking state
+    isThinking.value = false
     
     // Add AI response with message ID for audio generation
     const aiMessage = {
@@ -643,20 +738,33 @@ const sendMessage = async () => {
       text: response.response || 'Sorry, I didn\'t receive a proper response.',
       has_audio: false,
       audio_url: undefined,
-      follow_up_suggestions: response.follow_up_suggestions || []
+      follow_up_suggestions: response.follow_up_suggestions || [],
+      audio_word_timestamps: []
     }
     
     messages.value.push(aiMessage)
+    
+    // Mark as preparing audio if voice is enabled
+    if (voiceEnabled.value && response.ai_message_id) {
+      preparingAudio.value[response.ai_message_id] = true
+    }
     
     // Generate slide from backend slide data
     if (response.slide_title) {
       generateSlideFromBackendData(response.slide_title, response.slide_body || '', response.ai_message_id, response.slide_media_urls || [])
     }
     
-    // Auto-generate audio if voice is enabled
-    if (voiceEnabled.value && response.ai_message_id) {
-      // Don't await this - let it run in background
-      playAudio(response.ai_message_id).catch(console.error)
+    // Generate audio and auto-play if voice is enabled
+    if (response.ai_message_id) {
+      if (voiceEnabled.value) {
+        // Mark for auto-play once audio is ready
+        pendingAutoPlay.value[response.ai_message_id] = true
+        // Generate audio in background, will auto-play when ready
+        generateAudioInBackground(response.ai_message_id)
+      } else {
+        // Just generate audio in background for timestamps, but mark as ready
+        generateAudioInBackground(response.ai_message_id)
+      }
     }
     
     // Scroll to bottom to show new message
@@ -672,6 +780,7 @@ const sendMessage = async () => {
     })
   } finally {
     loading.value = false
+    isThinking.value = false
   }
 }
 
@@ -685,12 +794,19 @@ const scrollToBottom = () => {
 // Audio control functions
 const playAudio = async (messageId: number, audioUrl?: string) => {
   try {
-    // Stop any currently playing audio
+    // Stop any currently playing audio and clear word highlighting
     if (playingAudio.value) {
       playingAudio.value.pause()
       playingAudio.value = null
       currentPlayingMessageId.value = null
     }
+    
+    // Clear any existing word synchronization
+    if (audioSyncInterval.value) {
+      clearInterval(audioSyncInterval.value)
+      audioSyncInterval.value = null
+    }
+    currentHighlightedWordIndex.value = null
 
     let url = audioUrl
     
@@ -720,15 +836,31 @@ const playAudio = async (messageId: number, audioUrl?: string) => {
       audio.onended = () => {
         currentPlayingMessageId.value = null
         playingAudio.value = null
+        // Clear word highlighting when audio ends
+        if (audioSyncInterval.value) {
+          clearInterval(audioSyncInterval.value)
+          audioSyncInterval.value = null
+        }
+        currentHighlightedWordIndex.value = null
       }
       audio.onerror = () => {
         console.error('Failed to play audio')
         currentPlayingMessageId.value = null
         playingAudio.value = null
+        // Clear word highlighting on error
+        if (audioSyncInterval.value) {
+          clearInterval(audioSyncInterval.value)
+          audioSyncInterval.value = null
+        }
+        currentHighlightedWordIndex.value = null
       }
       
       currentPlayingMessageId.value = messageId
       playingAudio.value = audio
+      
+      // Start word synchronization if timestamps are available
+      startWordSynchronization(messageId)
+      
       audio.play()
     }
   } catch (error) {
@@ -743,6 +875,18 @@ const stopAudio = () => {
     playingAudio.value = null
     currentPlayingMessageId.value = null
   }
+  
+  // Clear word highlighting when stopping audio
+  if (audioSyncInterval.value) {
+    clearInterval(audioSyncInterval.value)
+    audioSyncInterval.value = null
+  }
+  currentHighlightedWordIndex.value = null
+  
+  // Clear speaking word highlighting for all messages
+  for (const messageId in currentSpeakingWordIndex.value) {
+    currentSpeakingWordIndex.value[messageId] = -1
+  }
 }
 
 const toggleVoice = () => {
@@ -750,6 +894,103 @@ const toggleVoice = () => {
   if (!voiceEnabled.value) {
     stopAudio()
   }
+}
+
+// Generate audio in background with auto-play support
+const generateAudioInBackground = async (messageId: number) => {
+  try {
+    audioLoadingStates.value[messageId] = true
+    const response = await apiStore.generateMessageAudio(messageId)
+    
+    // Clear preparing audio state
+    preparingAudio.value[messageId] = false
+    
+    // Update the message with audio info
+    const messageIndex = messages.value.findIndex(m => m.id === messageId)
+    if (messageIndex !== -1 && messages.value[messageIndex]) {
+      messages.value[messageIndex]!.has_audio = true
+      messages.value[messageIndex]!.audio_url = response.audio_url
+      messages.value[messageIndex]!.audio_word_timestamps = response.audio_word_timestamps || []
+    }
+    
+    // Mark this message as having audio ready
+    messagesWithAudioReady.value.add(messageId)
+    
+    // Auto-play if marked for auto-play
+    if (pendingAutoPlay.value[messageId]) {
+      pendingAutoPlay.value[messageId] = false
+      console.log('Auto-playing audio for message', messageId)
+      // Auto-play the audio immediately
+      await playAudio(messageId, response.audio_url)
+    } else {
+      console.log('Audio generated in background for message', messageId)
+    }
+    
+  } catch (error) {
+    console.error('Failed to generate background audio:', error)
+    // Clear states on error
+    preparingAudio.value[messageId] = false
+    pendingAutoPlay.value[messageId] = false
+  } finally {
+    audioLoadingStates.value[messageId] = false
+  }
+}
+
+// Word synchronization function
+const startWordSynchronization = (messageId: number) => {
+  const message = messages.value.find(m => m.id === messageId)
+  
+  if (!message || !message.audio_word_timestamps || message.audio_word_timestamps.length === 0) {
+    console.log('No word timestamps available for message', messageId)
+    return
+  }
+  
+  const timestamps = message.audio_word_timestamps
+  console.log('Starting word synchronization with', timestamps.length, 'timestamps')
+  
+  // Initialize visible words to 0 for this message
+  visibleWordIndices.value[messageId] = 0
+  currentSpeakingWordIndex.value[messageId] = -1
+  
+  // Start checking audio time every 50ms for smooth text reveal
+  audioSyncInterval.value = setInterval(() => {
+    if (!playingAudio.value) {
+      return
+    }
+    
+    const currentTime = playingAudio.value.currentTime
+    
+    // Find how many words should be visible based on audio time
+    let visibleWordCount = 0
+    
+    for (let i = 0; i < timestamps.length; i++) {
+      const timestamp = timestamps[i]
+      if (currentTime >= timestamp.start) {
+        visibleWordCount = i + 1
+      } else {
+        break
+      }
+    }
+    
+    // Update visible word count if it increased
+    if (visibleWordCount > (visibleWordIndices.value[messageId] || 0)) {
+      visibleWordIndices.value[messageId] = visibleWordCount
+    }
+    
+    // Also track the currently speaking word for highlighting
+    let currentWordIndex = -1
+    for (let i = 0; i < timestamps.length; i++) {
+      const timestamp = timestamps[i]
+      if (currentTime >= timestamp.start && currentTime <= timestamp.end) {
+        currentWordIndex = i
+        break
+      }
+    }
+    
+    if (currentWordIndex !== currentSpeakingWordIndex.value[messageId]) {
+      currentSpeakingWordIndex.value[messageId] = currentWordIndex
+    }
+  }, 50) // Check every 50ms for smooth text reveal
 }
 
 const useFollowUpSuggestion = (suggestion: string) => {
