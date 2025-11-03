@@ -141,7 +141,7 @@
                 <p class="text-sm leading-relaxed" :class="{'mt-3 mb-3 pt-2 border-t border-gray-200/50': message.sender === 'assistant'}" v-html="renderSynchronizedText(message)"></p>
                 
                 <!-- Follow-up Suggestions for AI Messages -->
-                <div v-if="message.sender === 'assistant' && message.follow_up_suggestions && message.follow_up_suggestions.length > 0 && index === messages.length - 1 && !playingAudio && !preparingAudio" class="">
+                <div v-if="message.sender === 'assistant' && message.follow_up_suggestions && message.follow_up_suggestions.length > 0 && index === messages.length - 1 && !playingAudio && (!preparingAudio[message?.id || 0])" class="">
                   <p class="text-xs text-gray-600 mb-2 font-medium">Continue the conversation:</p>
                   <div class="space-y-1">
                     <button
@@ -486,7 +486,7 @@ const quickPrompts = ref<string[]>([])
 
 // Function to render text with word-by-word synchronization
 const renderSynchronizedText = (message: any) => {
-  if (message.sender === 'user' || currentPlayingMessageId.value !== message.id) {
+  if ((message.sender === 'user' || currentPlayingMessageId.value !== message.id) && (!preparingAudio.value[message?.id])) {
     // For user messages, always show full text
     return message.text
   }
