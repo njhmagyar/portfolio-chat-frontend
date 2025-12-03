@@ -32,6 +32,15 @@ import { RouterView, RouterLink } from 'vue-router'
             >
               Browse
             </RouterLink>
+            <RouterLink
+              to="/tailwind"
+              class="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              :class="$route.name === 'tailwind' 
+                ? 'bg-blue-100 text-blue-700' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'"
+            >
+              Tailwind
+            </RouterLink>
           </nav>
         </div>
       </div>
