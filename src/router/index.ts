@@ -13,6 +13,17 @@ const router = createRouter({
       path: '/browse',
       name: 'browse',
       component: () => import('../views/BrowseView.vue')
+    },
+    {
+      path: '/case-study/:slug',
+      name: 'case-study-detail',
+      component: () => import('../views/CaseStudyDetailView.vue'),
+      props: true
+    },
+    {
+      path: '/tailwind',
+      name: 'tailwind',
+      component: () => import('../views/TailwindPlayground.vue')
     }
   ]
 })

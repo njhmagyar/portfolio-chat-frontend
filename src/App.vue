@@ -3,7 +3,7 @@ import { RouterView, RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="h-screen overflow-hidden bg-gray-50">
+  <div v-if="$route.name !== 'tailwind'" class="h-screen overflow-hidden bg-gray-50">
     <!-- Header with Navigation -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,4 +42,5 @@ import { RouterView, RouterLink } from 'vue-router'
       <RouterView />
     </main>
   </div>
+  <RouterView v-else />
 </template>
