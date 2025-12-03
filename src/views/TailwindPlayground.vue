@@ -71,5 +71,5 @@
 
 <script setup lang="ts">
 import Navigation from "@/components/Navigation.vue";
-import headshotImage from '@/assets/headshot.jpeg'
+import headshotImage from '@/assets/headshot.jpeg';
 </script>
