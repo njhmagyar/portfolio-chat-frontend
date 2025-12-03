@@ -39,9 +39,9 @@
                 </a>
               </li>
               <li class="mr-3">
-                <a href="/tailwind" class="inline-block px-4 py-2 text-lg font-normal text-gray-800 dark:text-gray-200 no-underline rounded-md hover:text-blue-500 dark:hover:text-blue-500 focus:text-blue-500 focus:bg-blue-100 focus:outline-none dark:focus:bg-gray-800">
+                <RouterLink to="/tailwind" class="inline-block px-4 py-2 text-lg font-normal text-gray-800 dark:text-gray-200 no-underline rounded-md hover:text-blue-500 dark:hover:text-blue-500 focus:text-blue-500 focus:bg-blue-100 focus:outline-none dark:focus:bg-gray-800">
                   Tailwind
-                </a>
+                </RouterLink>
               </li>
             </ul>
           </div>
@@ -50,8 +50,13 @@
 </template>
 
 <script>
+import { RouterLink } from 'vue-router'
+
 export default {
   name: "Navigation",
+  components: {
+    RouterLink
+  },
   data() {
     return {
       mode: "light",
