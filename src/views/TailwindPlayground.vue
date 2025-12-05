@@ -17,7 +17,7 @@
             :style="{
               left: `${dot.x}px`,
               top: `${dot.y}px`,
-              backgroundColor: dot.isNearCursor ? (isDark ? '#60a5fa' : '#3b82f6') : (isDark ? 'rgba(75, 85, 99, 0.6)' : 'rgba(156, 163, 175, 0.4)'),
+              backgroundColor: isDark ? 'rgba(75, 85, 99, 0.6)' : 'rgba(156, 163, 175, 0.4)',
               transform: `scale(${dot.scale}) translate(${dot.offsetX}px, ${dot.offsetY}px)`
             }"
           ></div>
@@ -146,7 +146,7 @@ const updateDots = () => {
     if (distance < cursorRadius) {
       // Dot is within cursor radius
       const influence = 1 - (distance / cursorRadius); // 1 at center, 0 at edge
-      dot.scale = 1 + influence * 1.5; // Scale up to 2.5x
+      dot.scale = 1 + influence * 2; // Scale up to 2.5x
       dot.isNearCursor = true;
       
       // Move dot slightly towards cursor (but only if distance > 5px to avoid jittery movement)
