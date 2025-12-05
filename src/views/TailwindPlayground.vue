@@ -79,7 +79,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted } from "vue";
 
 import Navigation from "@/components/Navigation.vue";
 import TickerTape from "@/components/TickerTape.vue";
