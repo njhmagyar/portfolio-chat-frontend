@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import ChatView from '../views/ChatView.vue'
+import BrowseView from '../views/BrowseView.vue'
+import CaseStudyDetailView from '../views/CaseStudyDetailView.vue'
+import TestPage from '../views/TestPage.vue'
+import TailwindPlayground from '../views/TailwindPlayground.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,23 +16,23 @@ const router = createRouter({
     {
       path: '/browse',
       name: 'browse',
-      component: () => import('../views/BrowseView.vue')
+      component: BrowseView
     },
     {
       path: '/case-study/:slug',
       name: 'case-study-detail',
-      component: () => import('../views/CaseStudyDetailView.vue'),
+      component: CaseStudyDetailView,
       props: true
     },
     {
       path: '/test-page',
-      name: 'test-iage',
-      component: () => import('../views/TestPage.vue'),
+      name: 'test-page',
+      component: TestPage,
     },
     {
       path: '/tailwind',
       name: 'tailwind',
-      component: () => import('../views/TailwindPlayground.vue')
+      component: TailwindPlayground
     }
   ]
 })
