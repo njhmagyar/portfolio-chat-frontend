@@ -21,6 +21,11 @@ const router = createRouter({
       props: true
     },
     {
+      path: '/test-page',
+      name: 'test-iage',
+      component: () => import('../views/TestPage.vue'),
+    },
+    {
       path: '/tailwind',
       name: 'tailwind',
       component: () => import('../views/TailwindPlayground.vue')
